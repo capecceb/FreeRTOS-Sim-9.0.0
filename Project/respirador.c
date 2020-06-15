@@ -59,6 +59,10 @@ void vApplicationIdleHook(void) {
 }
 /*--------------------------------------------------------------------------------*/
 
+/*
+ * Se encarga de enviar la informacion de presion y prox y current ticks cada 0.5 ms.
+ * Se usa la macro portTICK_RATE_MS para pasar de ticks a ms por si un ticks vale un valor diferente a 1 ms
+ */
 void vEnviarInfo(void *p) {
 	char buffer[500];
 	for (;;) {
@@ -67,51 +71,59 @@ void vEnviarInfo(void *p) {
 				tick_inicio_respiracion + pdMS_TO_TICKS(tiempo_respiracion),
 				xTaskGetTickCount());
 		xQueueSend(p, (void* ) buffer, (TickType_t ) 0);
-		vTaskDelay(500);
+		vTaskDelay(500*portTICK_RATE_MS);
 	}
 	vTaskDelete( NULL);
 }
 
+/*
+ * Se encarga de notificar las alarmas, se dispara cuando se libera el semaforo xSemaforoNotificacion.
+ * Se usa la macro portTICK_RATE_MS para pasar de ticks a ms por si un ticks vale un valor diferente a 1 ms
+ */
 void vNotificarAlarma(void *p) {
-	// ... COMPLETAR
-	TickType_t real_inicio_respiracion = xTaskGetTickCount();
-	TickType_t respiracion;
+	TickType_t Local_tick_inicio_respiracion = xTaskGetTickCount();
 	for (;;) {
 		xSemaphoreTake(xSemaforoNotificacion, 2000);
-		respiracion = xTaskGetTickCount() - real_inicio_respiracion;
-		printf("Respiracion %d\n", respiracion);
-		if (respiracion > 1200) {
+		int tiempo_respiracion_ms = (xTaskGetTickCount() - Local_tick_inicio_respiracion)*portTICK_RATE_MS;
+		if (tiempo_respiracion_ms > 1200) {
 			xTaskNotify(myTask2Handle, (1 << 1), eSetBits);
 		}
 		if (nivel_limite_presion == 2) {
 			xTaskNotify(myTask2Handle, (1 << 2), eSetBits);
 		}
-		real_inicio_respiracion = xTaskGetTickCount();
+		Local_tick_inicio_respiracion = xTaskGetTickCount();
 		vTaskDelay(1);
 	}
 	vTaskDelete( NULL);
 }
 
+/*
+ * Controla la respiracion a traves de del nivel de presion, se dispara con el semaforo xSemaforoRespiracion
+ * y se encarga de disparar la noficacion de alarmas a traves del semaforo xSemaforoNotificacion
+ */
 void vManejarRespiracion(void *p) {
-	// ... COMPLETAR
 	for (;;) {
 		xSemaphoreTake(xSemaforoRespiracion, 2000);
-		if (nivel_limite_presion == 0) {
+		switch(nivel_limite_presion) {
+		case 0:
 			tiempo_respiracion = 1000;
-		} else if (nivel_limite_presion == 1) {
+			break;
+		case 1:
 			tiempo_respiracion = 700;
-		} else {
+			break;
+		case 2:
 			tiempo_respiracion = 500;
 		}
-		printf("Corrijo %d %d\n", nivel_limite_presion, tiempo_respiracion);
 		xSemaphoreGive(xSemaforoNotificacion);
 		vTaskDelay(1);
 	}
 	vTaskDelete( NULL);
 }
 
+/*
+ * Punto de entrada del programa e inicializacion de variables, tareas y semaforos
+ */
 int main(void) {
-// ... COMPLETAR
 	char texto_display[500];
 	infoQueue = xQueueCreate(5, sizeof(texto_display));
 
@@ -130,7 +142,6 @@ int main(void) {
 	tskIDLE_PRIORITY + 2, NULL);
 
 	// Valores iniciales
-
 	sprintf(texto_display, "INICIANDO SISTEMA");
 	xSemaforoRespiracion = xSemaphoreCreateCounting(200, 0);
 	xSemaforoNotificacion = xSemaphoreCreateCounting(200, 0);

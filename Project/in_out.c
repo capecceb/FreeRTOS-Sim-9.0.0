@@ -64,7 +64,6 @@ void vRealizarRespiracion (void *p){
 	    	double chance = (double)rand() / RAND_MAX;
 		    if (chance <(double)CHANCE_EXCEDER_TIEMPO/100){
 		    	tick_inicio_respiracion += pdMS_TO_TICKS(tiempo_respiracion); // Chances de que se exceda del tiempo pedido
-		    	printf("CHANCE_EXCEDER_TIEMPO\n");
 		    }else{
 		    	chance = (double)rand() / RAND_MAX;
 				if (chance <(double)CHANCE_LIMITE_PRESION/100){
