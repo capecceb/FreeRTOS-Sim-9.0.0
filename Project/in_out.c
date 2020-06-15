@@ -61,22 +61,19 @@ void vRealizarRespiracion (void *p){
 	for(;;){
 	    if( xTaskGetTickCount() >= tick_inicio_respiracion + pdMS_TO_TICKS(tiempo_respiracion) )
 	    {
-
 	    	double chance = (double)rand() / RAND_MAX;
 		    if (chance <(double)CHANCE_EXCEDER_TIEMPO/100){
 		    	tick_inicio_respiracion += pdMS_TO_TICKS(tiempo_respiracion); // Chances de que se exceda del tiempo pedido
+		    	printf("CHANCE_EXCEDER_TIEMPO\n");
 		    }else{
 		    	chance = (double)rand() / RAND_MAX;
 				if (chance <(double)CHANCE_LIMITE_PRESION/100){
 					nivel_limite_presion = rand() % 3; // Chances de cambiar el nivel de presion actual
 				}
 		        xSemaphoreGive(xSemaforoRespiracion);
-
 		        tick_inicio_respiracion = xTaskGetTickCount();
 		    }
 	    }
 	    vTaskDelay(1);
 	}
 }
-
-
